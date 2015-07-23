@@ -1,0 +1,6 @@
+*.exe
+*.log
+exportms
+enc
+*.exe~
+encrypter/data.json
