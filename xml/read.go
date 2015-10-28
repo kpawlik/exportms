@@ -135,6 +135,30 @@ type XmlOffer struct {
 	Pictures *XmlPictures
 }
 
+func (o XmlOffer) Area(offerType string) string {
+	var values []string
+	switch offerType {
+	case "local":
+		values = []string{o.PowierzchniaCalkowita,
+			o.PowierzchniaUzytkowa,
+			o.PowierzchniaDzialki}
+	case "parcele":
+		values = []string{o.PowierzchniaDzialki,
+			o.PowierzchniaCalkowita,
+			o.PowierzchniaUzytkowa}
+	case "house", "apartment":
+		values = []string{o.PowierzchniaCalkowita,
+			o.PowierzchniaUzytkowa}
+	}
+
+	for _, value := range values {
+		if len(value) > 0 {
+			return value
+		}
+	}
+	return ""
+}
+
 func Unmarshall(path string) (header *XmlHeader, err error) {
 	var (
 		data []byte

@@ -3,9 +3,9 @@ package gratka
 import (
 	"encoding/xml"
 	"fmt"
-	"log"
 	"github.com/kpawlik/exportms/utils"
 	mxml "github.com/kpawlik/exportms/xml"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -274,7 +274,7 @@ func fillApartment(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
 	offerType := "mieszkanie"
 	rec.Add(NewXmlElem("id_pietro", getFloor(offer.Pietro)))
 	rec.Add(NewXmlElem("id_liczba_pieter", getNoOfFloors(offer.IloscPieter, offerType)))
-	rec.Add(NewXmlElem("powierzchnia", formatFloat(offer.PowierzchniaCalkowita)))
+	rec.Add(NewXmlElem("powierzchnia", formatFloat(offer.Area("apartment"))))
 	rec.Add(NewXmlElem("id_liczba_pokoi", getNoOfRooms(offer.IloscPokoi, offerType)))
 	rec.Add(NewXmlElem("id_rok_budowy", offer.RokBudowy.Clean()))
 	if bType, ok := dicts.Get("building").GetVal(offer.RodzajZabudowy.Clean()); ok {
@@ -309,18 +309,11 @@ func fillHouse(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
 }
 
 func fillParcele(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
-	var (
-		pow string
-	)
+
 	if pType, ok := dicts.Get("parcele").GetVal(offer.RodzajDzialki.Clean()); ok {
 		rec.Add(NewXmlElem("id_rodzaj_dzialki", pType))
 	}
-	if len(offer.PowierzchniaDzialki) > 0 {
-		pow = offer.PowierzchniaDzialki
-	} else {
-		pow = offer.PowierzchniaCalkowita
-	}
-	rec.Add(NewXmlElem("powierzchnia", formatFloat(pow)))
+	rec.Add(NewXmlElem("powierzchnia", formatFloat(offer.Area("parcele"))))
 	rec.Add(NewXmlElem("dlugosc", formatFloat(offer.DlugoscDzialki)))
 	rec.Add(NewXmlElem("szerokosc", formatFloat(offer.DlugoscDzialki)))
 	rec.Add(NewXmlElem("id_rok_budowy", offer.RokBudowy.Clean()))
@@ -330,7 +323,7 @@ func fillParcele(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
 
 func fillLocal(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
 	rec.Add(NewXmlElem("id_rok_budowy", offer.RokBudowy.Clean()))
-	rec.Add(NewXmlElem("powierzchnia_calkowita", formatFloat(offer.PowierzchniaCalkowita)))
+	rec.Add(NewXmlElem("powierzchnia_calkowita", formatFloat(offer.Area("local"))))
 	if loc, ok := dicts.Get("local").GetVal(offer.TypKonstrukcji.Clean()); ok {
 		rec.Add(NewXmlElem("id_typ_lokalu", loc))
 	}
