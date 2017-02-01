@@ -3,23 +3,28 @@ package main
 import (
 	"flag"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/kpawlik/exportms/gratka"
 	"io"
 	"log"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/kpawlik/exportms/gratka"
 	//	"github.com/kpawlik/exportms/otodom"
-	"github.com/kpawlik/exportms/utils"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/kpawlik/exportms/utils"
 )
 
 const (
-	DateFormat       = "2006_01_02_15"
+	// DateFormat main date format
+	DateFormat = "2006_01_02_15"
+	//GratkaExportType default export type
 	GratkaExportType = "full"
-	CreadentalsFile  = "enc"
+	// CreadentalsFile name of file with credentials
+	CreadentalsFile = "enc"
 )
 
 var (
@@ -31,21 +36,28 @@ var (
 	exportTypes string
 	tmpPrefix   string
 	testMode    bool
-	//credentials
-	DbUser      string
-	DbPass      string
-	DbHost      string
-	DbName      string
-	Domain      string
+	// DbUser database access user name
+	DbUser string
+	//DbPass database access passworld
+	DbPass string
+	// DbHost database host name
+	DbHost string
+	// DbName name of database
+	DbName string
+	// Domain database Domain
+	Domain string
+	// OfflineCode offline code
 	OfflineCode string
-	FTPHost     string
-	FTPLogin    string
+	// FTPHost ftp host name
+	FTPHost string
+	// FTPLogin ftp login
+	FTPLogin string
+	// FTPPass ftp password
 	FTPPass     string
 	credentials utils.Credentials
 	settings    *config
 	//
-	exports         map[string]exportFunc
-	allExportsTypes []string = []string{"gratka", "otodom"}
+	exports map[string]exportFunc
 )
 
 type config struct {
@@ -64,7 +76,7 @@ func init() {
 	)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.StringVar(&workDir, "o", "", "")
-	flag.IntVar(&noOfWorkers, "n", 5, "")
+	flag.IntVar(&noOfWorkers, "n", 1, "")
 	flag.BoolVar(&sendOnly, "s", false, "")
 	flag.BoolVar(&testMode, "tm", false, "")
 	flag.StringVar(&exportTypes, "e", "", "")
@@ -178,7 +190,7 @@ func main() {
 		types    []string
 	)
 	if len(settings.exports) == 0 {
-		types = allExportsTypes
+		types = []string{"gratka", "otodom"}
 	} else {
 		types = strings.Split(settings.exports, ",")
 		for _, typ := range types {

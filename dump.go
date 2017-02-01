@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"io/ioutil"
 	"log"
-	"github.com/kpawlik/exportms/db"
-	"github.com/kpawlik/exportms/utils"
-	"github.com/kpawlik/exportms/xml"
 	"os"
 	"path/filepath"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/kpawlik/exportms/db"
+	"github.com/kpawlik/exportms/utils"
+	"github.com/kpawlik/exportms/xml"
 )
 
 // fillOffer fill offer record from database
@@ -86,29 +87,30 @@ func worker(in chan *db.Offer, out chan *xml.Offer, specials db.SpecialsMap) {
 	c := make(chan *xml.Offer)
 	for offer := range in {
 		dbConn := offer.DB
-		offerId := offer.Id()
-		go getOfferData(dbConn, offerId, specials, c)
+		offerID := offer.Id()
+		go getOfferData(dbConn, offerID, specials, c)
 		out <- <-c
 	}
 }
 
 // getOfferData gather all data for offer and return filled object to channel
-func getOfferData(dbConn *db.DB, offerId int, specialsMap db.SpecialsMap, offersChan chan *xml.Offer) {
+func getOfferData(dbConn *db.DB, offerID int, specialsMap db.SpecialsMap, offersChan chan *xml.Offer) {
 	var (
 		err error
 	)
-	offer := db.NewOffer(dbConn, offerId)
-	utils.LogErrf(offer.Get(), "Get offer (%d)", offerId)
+	offer := db.NewOffer(dbConn, offerID)
+	utils.LogErrf(offer.Get(), "Get offer (%d)", offerID)
 	// contact and owner data
-	personId := offer.StringAt(db.ID_WPROWADZAJACEGO)
-	contactId := offer.StringAt(db.ID_WLASCICIELA)
+	personID := offer.StringAt(db.ID_WPROWADZAJACEGO)
+	contactID := offer.StringAt(db.ID_WLASCICIELA)
+
 	person := db.NewPerson(dbConn)
-	utils.LogErrf(person.Get(personId), "Get person (%s) for offer (%d)", personId, offerId)
+	utils.LogErrf(person.Get(personID), "Get person (%s) for offer (%d)", personID, offerID)
 	contact := db.NewPerson(dbConn)
-	utils.LogErrf(contact.Get(contactId), "Get contact (%s) for offer (%d)", personId, offerId)
+	utils.LogErrf(contact.Get(contactID), "Get contact (%s) for offer (%d)", personID, offerID)
 	// additionals data
 	add := db.NewAdditional(dbConn)
-	utils.LogErrf(add.Get(offerId), "Get additional data for offer (%d)", offerId)
+	utils.LogErrf(add.Get(offerID), "Get additional data for offer (%d)", offerID)
 	//
 	xmlOffer := fillOffer(offer, add, person, contact)
 	sid := offer.StrId()
@@ -116,7 +118,7 @@ func getOfferData(dbConn *db.DB, offerId int, specialsMap db.SpecialsMap, offers
 	// images and specials
 	images := db.NewImages(dbConn, sid)
 	if imgIds, err = images.FileNames(); err != nil {
-		utils.LogErrf(err, "Images ids for offer (%d)", offerId)
+		utils.LogErrf(err, "Images ids for offer (%d)", offerID)
 	}
 	go getImages(imagesChan, images, workDir)
 	xmlOffer.Pictures = xml.NewListElem("zdjecia", "zdjecie")
@@ -128,8 +130,8 @@ func getOfferData(dbConn *db.DB, offerId int, specialsMap db.SpecialsMap, offers
 
 func dumpAsXML(conf *config) (count int, err error) {
 	workDir := conf.workDir
-	exportId := fmt.Sprintf("%s_00.xml", time.Now().Format(DateFormat))
-	exportXMLName := filepath.Join(workDir, exportId)
+	exportID := fmt.Sprintf("%s_00.xml", time.Now().Format(DateFormat))
+	exportXMLName := filepath.Join(workDir, exportID)
 
 	// sync channels
 	imagesChan = make(chan error)
@@ -158,8 +160,8 @@ func dumpAsXML(conf *config) (count int, err error) {
 		return
 	}
 	go func() {
-		for _, offerId := range offers.Ids() {
-			offer := db.NewOffer(dbConn, offerId)
+		for _, offerID := range offers.Ids() {
+			offer := db.NewOffer(dbConn, offerID)
 			inOffersChan <- offer
 		}
 	}()
@@ -171,7 +173,7 @@ func dumpAsXML(conf *config) (count int, err error) {
 	for range offers.Ids() {
 		xmlOffer := <-outOffersChan
 		xmlOffers.Add(xmlOffer)
-		counter += 1
+		counter++
 		if (counter % step) == 0 {
 			log.Printf("Completed %d/%d\n", counter, total)
 		}
@@ -187,7 +189,7 @@ func dumpAsXML(conf *config) (count int, err error) {
 	if err = xml.Write(head, exportXMLName); err != nil {
 		return
 	}
-	if err = ioutil.WriteFile(filepath.Join(workDir, "last.id"), []byte(exportId), os.ModePerm); err != nil {
+	if err = ioutil.WriteFile(filepath.Join(workDir, "last.id"), []byte(exportID), os.ModePerm); err != nil {
 		return
 	}
 	count = len(offers.Ids())
