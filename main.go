@@ -9,6 +9,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kpawlik/exportms/gratka"
 	//	"github.com/kpawlik/exportms/otodom"
+	_ "github.com/go-sql-driver/mysql"
 	"os"
 	"path/filepath"
 	"runtime"

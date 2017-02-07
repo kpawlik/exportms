@@ -3,16 +3,19 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/kpawlik/exportms/utils"
 	"path/filepath"
+
+	"github.com/kpawlik/exportms/utils"
 )
 
 const (
+	// OffersQ query to get offers id list
 	OffersQ = `SELECT ID_OFERTY FROM OFERTY_WWW WHERE AKTYWNA='1' AND ID_OFERTY NOT IN
 	(SELECT DISTINCT ID_OFERTY FROM OFERTY_WWW_WYROZNIENIA WHERE ID_WYROZNIENIA = 'NIE_EKSPORTUJ') `
+	// SpecialsQ gets all specials offers ids
 	SpecialsQ = `SELECT ID_OFERTY,
 					ID_WYROZNIENIA FROM OFERTY_WWW_WYROZNIENIA`
+	// OfferQ gets offers details
 	OfferQ = `SELECT ID_OFERTY,
 						ID_FIRMY,
 					    NUMER_OFERTY,
@@ -41,6 +44,7 @@ const (
 					    ID_WLASCICIELA,
 					    KOD_OFERTY
 					FROM OFERTY_WWW WHERE ID_OFERTY = ?`
+	// AdditionslQ additionals data
 	AdditionslQ = `SELECT POLE_01,
 						POLE_02,
 						POLE_03,
@@ -75,99 +79,109 @@ const (
 						POLE_44,
 						POLE_28
 					FROM REJESTRY_UZYTKOWNIKA_DANE WHERE ID_REJESTRY_UZYTKOWNIKA_DANE=?`
+	// ImagesQ query to gets pictures for order
 	ImagesQ = `SELECT ID_OBRAZKA FROM OFERTY_WWW_OBRAZKI WHERE ID_OFERTY=?
            		AND ( ( STATUS<>'WWW_LOCKED' ) OR ( STATUS IS NULL ) ) ORDER BY KOLEJNOSC`
-	ImageQ                     = `SELECT SQL_BIG_RESULT OBRAZEK FROM OBRAZKI WHERE ID_OBRAZKA=?`
-	PersonQ                    = `SELECT IMIE, NAZWISKO, TELEFON, TELEFON_2, TELEFON_3, EMAIL FROM OSOBY WHERE ID_OSOBY=?`
-	ID_WYROZNIENIA utils.ColId = 1
-)
-const (
-	ID_OFERTY utils.ColId = iota
-	ID_FIRMY
-	NUMER_OFERTY
-	AKTYWNA
-	TYP_OFERTY
-	RODZAJ_OFERTY
-	ID_GRUPY
-	NAZWA_OFERTY
-	INFO
-	TRESC_OFERTY
-	OFERTA_ZAWIERA
-	UWAGI
-	CENA
-	DATA_ZGLOSZENIA
-	GODZINA_ZGLOSZENIA
-	ID_WPROWADZAJACEGO
-	DATA_MODYFIKACJI
-	GODZINA_MODYFIKACJI
-	ID_MODYFIKUJACEGO
-	ILOSC_WYSWIETLEN
-	CENA_NETTO
-	STAWKA_VAT
-	SWW
-	JEDNOSTKA_MIARY
-	WAGA
-	ID_WLASCICIELA
-	KOD_OFERTY
+	// ImageQ gets picture data
+	ImageQ = `SELECT SQL_BIG_RESULT OBRAZEK FROM OBRAZKI WHERE ID_OBRAZKA=?`
+	// PersonQ gets person data
+	PersonQ = `SELECT IMIE, NAZWISKO, TELEFON, TELEFON_2, TELEFON_3, EMAIL FROM OSOBY WHERE ID_OSOBY=?`
+	// IDWyroznienia speciall id
+	IDWyroznienia utils.ColId = 1
 )
 
+// database ids
 const (
-	POLE_01 utils.ColId = iota
-	POLE_02
-	POLE_03
-	POLE_04
-	POLE_05
-	POLE_06
-	POLE_07
-	POLE_08
-	POLE_09
-	POLE_10
-	POLE_11
-	POLE_60
-	POLE_61
-	POLE_62
-	POLE_63
-	POLE_64
-	POLE_65
-	POLE_21
-	POLE_66
-	POLE_67
-	POLE_68
-	POLE_69
-	POLE_22
-	POLE_23
-	POLE_24
-	POLE_25
-	POLE_26
-	POLE_27
-	POLE_41
-	POLE_42
-	POLE_43
-	POLE_44
-	POLE_28
+	IDOferty utils.ColId = iota
+	IDFirmy
+	NumerOferty
+	Aktywna
+	TypOferty
+	RodzajOferty
+	IDGrupy
+	NazwaOferty
+	Info
+	TrescOferty
+	OfertaZamowienia
+	Uwagi
+	Cena
+	DataZgloszenia
+	GodzinaZgloszenia
+	IDWprowadzajacego
+	DataModyfikacji
+	GodzinaModyfikacji
+	IDModyfikujacego
+	IloscWyswietlen
+	CenaNetto
+	StawkaVat
+	Sww
+	JednostaMiary
+	Waga
+	IDWlasciciela
+	KodOferty
 )
 
+// Additional fields
 const (
-	IMIE utils.ColId = iota
-	NAZWISKO
-	TELEFON
-	TELEFON_2
-	TELEFON_3
-	EMAIL
+	Pole01 utils.ColId = iota
+	Pole02
+	Pole03
+	Pole04
+	Pole05
+	Pole06
+	Pole07
+	Pole08
+	Pole09
+	Pole10
+	Pole11
+	Pole60
+	Pole61
+	Pole62
+	Pole63
+	Pole64
+	Pole65
+	Pole21
+	Pole66
+	Pole67
+	Pole68
+	Pole69
+	Pole22
+	Pole23
+	Pole24
+	Pole25
+	Pole26
+	Pole27
+	Pole41
+	Pole42
+	Pole43
+	Pole44
+	Pole28
 )
 
+// User details ids
+const (
+	Imie utils.ColId = iota
+	Nazwisko
+	Telefon
+	Telefon2
+	Telefon3
+	Email
+)
+
+// SpecialsMap type to store map of specials
 type SpecialsMap map[string][]string
 
-//
-//	DB
-//
+// DB struct and methods
 type DB struct {
 	Db *sql.DB
 }
 
+// Connection to databases
 func (d *DB) Connection() *sql.DB {
 	return d.Db
 }
+
+// Connect to database
 func (d *DB) Connect(user, pass, host, dbname string) (err error) {
 	if d.Db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", user, pass, host, dbname)); err != nil {
 		return
@@ -175,33 +189,41 @@ func (d *DB) Connect(user, pass, host, dbname string) (err error) {
 	return d.Db.Ping()
 }
 
+// Close close db connections
 func (d *DB) Close() (err error) {
 	err = d.Db.Close()
 	utils.LogErr(err, "Close db")
 	return
 }
 
+// Query returns query results
 func (d *DB) Query(query string) (rows *sql.Rows, err error) {
 	rows, err = d.Db.Query(query)
 	utils.LogErr(err, "Query")
 	return
 }
 
+// CloseRows close all db rows
 func (d *DB) CloseRows(rows *sql.Rows) {
 	utils.LogErr(rows.Close(), "Close rows")
 }
 
+//
+// Images struct with methods
+//
 type Images struct {
 	*DB
 	ids     []string
-	offerId string
+	offerID string
 }
 
-func NewImages(db *DB, offerId string) *Images {
-	return &Images{db, []string{}, offerId}
+// NewImages new struct with db context
+func NewImages(db *DB, offerID string) *Images {
+	return &Images{db, []string{}, offerID}
 }
 
-func (i *Images) AddId(id string) {
+// AddID add image id
+func (i *Images) AddID(id string) {
 	i.ids = append(i.ids, id)
 }
 
@@ -214,20 +236,21 @@ func (i *Images) getIdsForOffer() (ids []string, err error) {
 	if stm, err = db.Prepare(ImagesQ); err != nil {
 		return
 	}
-	if rows, err = stm.Query(i.offerId); err != nil {
+	if rows, err = stm.Query(i.offerID); err != nil {
 		return
 	}
 	for rows.Next() {
-		var imageId string
-		if err = rows.Scan(&imageId); err != nil {
+		var imageID string
+		if err = rows.Scan(&imageID); err != nil {
 			return
 		}
-		i.AddId(imageId)
+		i.AddID(imageID)
 	}
 	ids = i.ids
 	return
 }
 
+// Ids return list of all images ids
 func (i *Images) Ids() (ids []string, err error) {
 	if len(i.ids) > 0 {
 		ids = i.ids
@@ -236,6 +259,7 @@ func (i *Images) Ids() (ids []string, err error) {
 	return i.getIdsForOffer()
 }
 
+// FileNames return list of file names
 func (i *Images) FileNames() (names []string, err error) {
 	var (
 		ids []string
@@ -262,6 +286,7 @@ func (i *Images) getRawImage(id string) (buff []byte, err error) {
 	return
 }
 
+//
 func (i *Images) saveImage(id, dest string) (err error) {
 	var (
 		buff []byte
@@ -273,6 +298,7 @@ func (i *Images) saveImage(id, dest string) (err error) {
 	return utils.SaveImageFromBytes(buff, path)
 }
 
+// SaveImages save images
 func (i *Images) SaveImages(dest string) (err error) {
 	if _, err = i.Ids(); err != nil {
 		return
@@ -286,26 +312,29 @@ func (i *Images) SaveImages(dest string) (err error) {
 }
 
 //
-// Offers
+// Offers struct and methods
 //
-
 type Offers struct {
 	*DB
 	ids []int
 }
 
+// NewOffers new structure with db context
 func NewOffers(db *DB) *Offers {
 	return &Offers{db, []int{}}
 }
 
+//Ids returns ids
 func (o *Offers) Ids() []int {
 	return o.ids
 }
 
-func (o *Offers) AddId(id int) {
+// AddID adds id to offer
+func (o *Offers) AddID(id int) {
 	o.ids = append(o.ids, id)
 }
 
+// GetAllIds gets all id for offer
 func (o *Offers) GetAllIds() (err error) {
 	db := o.Connection()
 	rows, err := db.Query(OffersQ)
@@ -318,14 +347,14 @@ func (o *Offers) GetAllIds() (err error) {
 		if err = rows.Scan(&id); err != nil {
 			return
 		}
-		o.AddId(id)
+		o.AddID(id)
 	}
 	err = rows.Err()
 	return
 }
 
 //
-// Offer
+// Offer struct and methods
 //
 type Offer struct {
 	*DB
@@ -333,10 +362,12 @@ type Offer struct {
 	row utils.Row
 }
 
+// NewOffer new struct with db context
 func NewOffer(db *DB, id int) *Offer {
 	return &Offer{db, id, utils.Row{}}
 }
 
+// Get record from db
 func (o *Offer) Get() (err error) {
 	db := o.Connection()
 	row := db.QueryRow(OfferQ, o.id)
@@ -374,38 +405,43 @@ func (o *Offer) Get() (err error) {
 	return
 }
 
-func (o *Offer) StrId() string {
+// StrID returns id as string
+func (o *Offer) StrID() string {
 	return fmt.Sprintf("%d", o.id)
 }
 
-func (o *Offer) Id() int {
+// ID returns id value
+func (o *Offer) ID() int {
 	return o.id
 }
 
+// StringAt column value with id index
 func (o *Offer) StringAt(id utils.ColId) string {
 	return utils.GetString(o.row, id)
 }
 
+// IntAt column value with id index
 func (o *Offer) IntAt(id utils.ColId) string {
 	if val, ok := utils.GetInt64(o.row, id); ok {
 		return fmt.Sprintf("%d", val)
-	} else {
-		return ""
 	}
+	return ""
 }
 
 //
-// specials
+// Specials struct and methods
 //
 type Specials struct {
 	*DB
 	rows []utils.Row
 }
 
+// NewSpecials new struct with db context
 func NewSpecials(db *DB) *Specials {
 	return &Specials{db, []utils.Row{}}
 }
 
+// GetAll gets all specials from db
 func (s *Specials) GetAll() (err error) {
 	db := s.Connection()
 	rows, err := db.Query(SpecialsQ)
@@ -426,15 +462,17 @@ func (s *Specials) GetAll() (err error) {
 	return
 }
 
+// Add row to specials s
 func (s *Specials) Add(row utils.Row) {
 	s.rows = append(s.rows, row)
 }
 
+// AsMap return specials as map [id] strings{}
 func (s *Specials) AsMap() SpecialsMap {
 	m := make(SpecialsMap)
 	for _, row := range s.rows {
-		id := utils.GetString(row, ID_OFERTY)
-		val := utils.GetString(row, ID_WYROZNIENIA)
+		id := utils.GetString(row, IDOferty)
+		val := utils.GetString(row, IDWyroznienia)
 		if arr, ok := m[id]; ok {
 			arr = append(arr, val)
 			m[id] = arr
@@ -445,22 +483,21 @@ func (s *Specials) AsMap() SpecialsMap {
 	return m
 }
 
-//
-// Additions
-//
-
+// Additional struct and methods
 type Additional struct {
 	*DB
 	Row utils.Row
 }
 
+//NewAdditional create new Additional struct with db context
 func NewAdditional(db *DB) *Additional {
 	return &Additional{db, utils.Row{}}
 }
 
-func (a *Additional) Get(offerId int) (err error) {
+// Get gets record from db
+func (a *Additional) Get(offerID int) (err error) {
 	db := a.Connection()
-	row := db.QueryRow(AdditionslQ, offerId)
+	row := db.QueryRow(AdditionslQ, offerID)
 
 	dest := utils.Row{
 		new(sql.NullString), //POLE_01
@@ -502,36 +539,37 @@ func (a *Additional) Get(offerId int) (err error) {
 	return
 }
 
+// StringAt column value with id index
 func (a *Additional) StringAt(id utils.ColId) string {
 	val := utils.GetString(a.Row, id)
 	if val == "0" {
 		return ""
-	} else {
-		return val
 	}
+	return val
 }
 
+// IntAt column value with id index
 func (a *Additional) IntAt(id utils.ColId) string {
 	if val, ok := utils.GetInt64(a.Row, id); ok {
 		return fmt.Sprintf("%d", val)
-	} else {
-		return ""
 	}
+	return ""
 }
 
 //
-// person
+// Person struct and methods
 //
-
 type Person struct {
 	*DB
 	row utils.Row
 }
 
+// NewPerson creates new structure with database context
 func NewPerson(db *DB) *Person {
 	return &Person{db, utils.Row{}}
 }
 
+// Get return person record with id
 func (p *Person) Get(id string) (err error) {
 	var stm *sql.Stmt
 	db := p.Connection()
@@ -552,18 +590,20 @@ func (p *Person) Get(id string) (err error) {
 	return
 }
 
+// StringAt return row string from p.row with id index
 func (p *Person) StringAt(id utils.ColId) string {
 	return utils.GetString(p.row, id)
 }
 
+// DecodeStringAt return decoded string from column with id index
 func (p *Person) DecodeStringAt(id utils.ColId) string {
 	return utils.DecodeStr(utils.GetString(p.row, id))
 }
 
+// IntAt return column value from p.row with id index
 func (p *Person) IntAt(id utils.ColId) string {
 	if val, ok := utils.GetInt64(p.row, id); ok {
 		return fmt.Sprintf("%d", val)
-	} else {
-		return ""
 	}
+	return ""
 }
