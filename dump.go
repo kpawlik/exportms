@@ -77,8 +77,10 @@ func fillOffer(offer *db.Offer, additionals *db.Additional, person, contact *db.
 }
 
 // getImages download images in concurrent way
-func getImages(c chan error, imgs *db.Images, destFolder string) {
-	c <- imgs.SaveImages(filepath.Join(destFolder, "images"))
+func getImages(imgs *db.Images, destFolder string) {
+	defer wg.Done()
+	err := imgs.SaveImages(filepath.Join(destFolder, "images"))
+	utils.LogErrfInfo(err, "Error download image")
 }
 
 // worker is concurrent function to handle len(in) concurrent offers
@@ -119,7 +121,8 @@ func getOfferData(dbConn *db.DB, offerID int, specialsMap db.SpecialsMap, offers
 	if imgIds, err = images.FileNames(); err != nil {
 		utils.LogErrf(err, "Images ids for offer (%d)", offerID)
 	}
-	go getImages(imagesChan, images, workDir)
+	wg.Add(1)
+	go getImages(images, workDir)
 	xmlOffer.Pictures = xml.NewListElem("zdjecia", "zdjecie")
 	xmlOffer.Pictures.AddMany(imgIds...)
 	xmlOffer.Specials = xml.NewListElem("wyroznienia", "wyroznienie")
@@ -133,7 +136,6 @@ func dumpAsXML(conf *config) (count int, err error) {
 	exportXMLName := filepath.Join(workDir, exportID)
 
 	// sync channels
-	imagesChan = make(chan error)
 	inOffersChan := make(chan *db.Offer, 5)
 	outOffersChan := make(chan *xml.Offer)
 	// connect to db
@@ -174,15 +176,13 @@ func dumpAsXML(conf *config) (count int, err error) {
 		xmlOffers.Add(xmlOffer)
 		counter++
 		if (counter % step) == 0 {
-			log.Printf("Completed %d/%d\n", counter, total)
+			log.Printf("Completed orders: %d/%d\n", counter, total)
 		}
 	}
-	log.Printf("Completed %d/%d\n", counter, total)
-	log.Printf("Wait for images\n")
+	log.Printf("Completed orders: %d/%d\n", counter, total)
+	log.Printf("Waiting for download all images \n")
 	// wait for all images finish download
-	for range offers.Ids() {
-		<-imagesChan
-	}
+	wg.Wait()
 	system := xml.NewSystem("1", "date", "hour", "www")
 	head := xml.NewHeader(system, xmlOffers)
 	if err = xml.Write(head, exportXMLName); err != nil {

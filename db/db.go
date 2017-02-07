@@ -87,12 +87,12 @@ const (
 	// PersonQ gets person data
 	PersonQ = `SELECT IMIE, NAZWISKO, TELEFON, TELEFON_2, TELEFON_3, EMAIL FROM OSOBY WHERE ID_OSOBY=?`
 	// IDWyroznienia speciall id
-	IDWyroznienia utils.ColId = 1
+	IDWyroznienia utils.ColID = 1
 )
 
 // database ids
 const (
-	IDOferty utils.ColId = iota
+	IDOferty utils.ColID = iota
 	IDFirmy
 	NumerOferty
 	Aktywna
@@ -123,7 +123,7 @@ const (
 
 // Additional fields
 const (
-	Pole01 utils.ColId = iota
+	Pole01 utils.ColID = iota
 	Pole02
 	Pole03
 	Pole04
@@ -160,7 +160,7 @@ const (
 
 // User details ids
 const (
-	Imie utils.ColId = iota
+	Imie utils.ColID = iota
 	Nazwisko
 	Telefon
 	Telefon2
@@ -416,12 +416,12 @@ func (o *Offer) ID() int {
 }
 
 // StringAt column value with id index
-func (o *Offer) StringAt(id utils.ColId) string {
+func (o *Offer) StringAt(id utils.ColID) string {
 	return utils.GetString(o.row, id)
 }
 
 // IntAt column value with id index
-func (o *Offer) IntAt(id utils.ColId) string {
+func (o *Offer) IntAt(id utils.ColID) string {
 	if val, ok := utils.GetInt64(o.row, id); ok {
 		return fmt.Sprintf("%d", val)
 	}
@@ -540,7 +540,7 @@ func (a *Additional) Get(offerID int) (err error) {
 }
 
 // StringAt column value with id index
-func (a *Additional) StringAt(id utils.ColId) string {
+func (a *Additional) StringAt(id utils.ColID) string {
 	val := utils.GetString(a.Row, id)
 	if val == "0" {
 		return ""
@@ -549,7 +549,7 @@ func (a *Additional) StringAt(id utils.ColId) string {
 }
 
 // IntAt column value with id index
-func (a *Additional) IntAt(id utils.ColId) string {
+func (a *Additional) IntAt(id utils.ColID) string {
 	if val, ok := utils.GetInt64(a.Row, id); ok {
 		return fmt.Sprintf("%d", val)
 	}
@@ -591,17 +591,17 @@ func (p *Person) Get(id string) (err error) {
 }
 
 // StringAt return row string from p.row with id index
-func (p *Person) StringAt(id utils.ColId) string {
+func (p *Person) StringAt(id utils.ColID) string {
 	return utils.GetString(p.row, id)
 }
 
 // DecodeStringAt return decoded string from column with id index
-func (p *Person) DecodeStringAt(id utils.ColId) string {
+func (p *Person) DecodeStringAt(id utils.ColID) string {
 	return utils.DecodeStr(utils.GetString(p.row, id))
 }
 
 // IntAt return column value from p.row with id index
-func (p *Person) IntAt(id utils.ColId) string {
+func (p *Person) IntAt(id utils.ColID) string {
 	if val, ok := utils.GetInt64(p.row, id); ok {
 		return fmt.Sprintf("%d", val)
 	}

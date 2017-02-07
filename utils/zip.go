@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 )
 
+//ZipFolder compress folder
 func ZipFolder(folder, outName string) (err error) {
 	var (
 		dirToZip   *os.File

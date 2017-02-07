@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kpawlik/exportms/gratka"
@@ -29,8 +30,7 @@ const (
 )
 
 var (
-	imagesChan chan error
-
+	wg          sync.WaitGroup
 	workDir     string
 	noOfWorkers int
 	sendOnly    bool
@@ -106,6 +106,9 @@ func init() {
 		sendOnly:    sendOnly,
 		exports:     exportTypes,
 		testMode:    testMode}
+	log.Println("Settings:")
+	log.Printf("No of concurrent workers: %d\n", noOfWorkers)
+	log.Printf("Work dir: %s\n", workDir)
 
 	exports = map[string]exportFunc{
 		"gratka": exportGratka,
@@ -170,9 +173,11 @@ func exportGratka(name string, conf *config) (err error) {
 	setCredentials(name)
 	zipPath = gratka.ZipPath(conf.workDir, Domain)
 	if !conf.sendOnly {
+		startTime := time.Now()
 		if gratkaDir, err = gratka.Convert(workDir, OfflineCode, Domain); err != nil {
 			return
 		}
+		log.Printf("Convertion time: %s\n", time.Now().Sub(startTime))
 		if zipPath, err = gratka.Zip(workDir, gratkaDir, Domain); err != nil {
 			return
 		}
@@ -212,7 +217,7 @@ func main() {
 		log.Printf("Start getting data from DB\n")
 		offersNo, err = dumpAsXML(settings)
 		utils.LogErr(err, "Dump XML")
-		log.Printf("Got %d offers from DB (in %v)\n", offersNo, time.Now().Sub(startTime))
+		log.Printf("Downloaded %d offers from DB (in %v)\n", offersNo, time.Now().Sub(startTime))
 	}
 
 	for _, name := range types {

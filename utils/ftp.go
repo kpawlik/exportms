@@ -1,10 +1,12 @@
 package utils
 
 import (
-	"github.com/dutchcoders/goftp"
 	"os"
+
+	"github.com/dutchcoders/goftp"
 )
 
+// FTP sype and methods
 type FTP struct {
 	host     string
 	user     string
@@ -12,10 +14,12 @@ type FTP struct {
 	testMode bool
 }
 
+// NewFTP new ftp object
 func NewFTP(host, user, pass string, testMode bool) *FTP {
 	return &FTP{host: host, user: user, pass: pass, testMode: testMode}
 }
 
+// SendFile send file to ftp
 func (f *FTP) SendFile(remoteDir, remoteFile, localFile string) (err error) {
 	var (
 		file *os.File

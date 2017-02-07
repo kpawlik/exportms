@@ -3,22 +3,24 @@ package gratka
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/kpawlik/exportms/utils"
-	mxml "github.com/kpawlik/exportms/xml"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/kpawlik/exportms/utils"
+	mxml "github.com/kpawlik/exportms/xml"
 )
 
 const (
 	zipNameDateFormat = "20060102"
-	ExportType        = "full"
+	// ExportType type of export
+	ExportType = "full"
 )
 
-type fillOfferFunc func(*Record, mxml.XmlOffer, *Dicts) error
+type fillOfferFunc func(*record, mxml.XmlOffer, *Dicts) error
 
 var (
 	fillFuncMap = map[string]fillOfferFunc{
@@ -29,62 +31,66 @@ var (
 		"garaz":      fillOffice, // same fields as office
 		"biuro":      fillOffice}
 	pictChan = make(chan error)
+	// wg       sync.WaitGroup
+	// mutex    sync.Mutex
 )
 
-type Actions struct {
+type actions struct {
 	*mxml.BaseElem
 }
 
-func NewActions(exportType string) *Actions {
-	elem := NewXmlElem("export", "full")
-	return &Actions{mxml.NewBaseElem("actions", []mxml.ElemWriter{elem})}
+func newActions(exportType string) *actions {
+	elem := newXMLElem("export", "full")
+	return &actions{mxml.NewBaseElem("actions", []mxml.ElemWriter{elem})}
 }
 
-type Company struct {
+type company struct {
 	*mxml.BaseElem
 }
 
-func NewCompany(code string) *Company {
-	elem := NewXmlElem("kod_offline", code)
-	return &Company{mxml.NewBaseElem("firma", []mxml.ElemWriter{elem})}
+func newCompany(code string) *company {
+	elem := newXMLElem("kod_offline", code)
+	return &company{mxml.NewBaseElem("firma", []mxml.ElemWriter{elem})}
 }
 
-type Pictures struct {
+type pictures struct {
 	*mxml.BaseElem
 }
 
+// Gratka type and methods
 type Gratka struct {
 	*mxml.BaseElem
 }
 
-func NewGratka() *Gratka {
+func newGratka() *Gratka {
 	return &Gratka{mxml.NewBaseElem("dane", []mxml.ElemWriter{})}
 }
 
-type Record struct {
+type record struct {
 	*mxml.BaseElem
 }
 
-func NewRecord() *Record {
-	return &Record{mxml.NewBaseElem("record", []mxml.ElemWriter{})}
+func newRecord() *record {
+	return &record{mxml.NewBaseElem("record", []mxml.ElemWriter{})}
 }
 
-func NewXmlElem(tag, value string) *mxml.Elem {
+func newXMLElem(tag, value string) *mxml.Elem {
 	return mxml.NewElem(tag, value)
 }
 
+//Convert converts source dir contetnt into GRATKA format
 func Convert(sourceFolder, offlineCode, domain string) (gratkaDir string, err error) {
 	var (
 		header *mxml.XmlHeader
+		inPath string
 	)
 	log.Printf("Start convert to 'GRATKA' format\n")
-	if inPath := utils.GetLastIdFileName(sourceFolder); len(inPath) == 0 {
+	if inPath = utils.GetLastIDFileName(sourceFolder); len(inPath) == 0 {
 		err = utils.Errorf("No file for last export")
 		return
-	} else {
-		if header, err = mxml.Unmarshall(inPath); err != nil {
-			return
-		}
+	}
+	if header, err = mxml.Unmarshall(inPath); err != nil {
+		return
 	}
 	if gratkaDir, err = makeDirs(sourceFolder); err != nil {
 		return
@@ -92,27 +98,25 @@ func Convert(sourceFolder, offlineCode, domain string) (gratkaDir string, err er
 	imagesDirPath := filepath.Join(sourceFolder, "images")
 	outFilePath := filepath.Join(gratkaDir, "dane.xml")
 
-	if err = convertXml(header, offlineCode, imagesDirPath, outFilePath, gratkaDir); err != nil {
+	if err = convertXML(header, offlineCode, imagesDirPath, outFilePath, gratkaDir); err != nil {
 		return
 	}
 	log.Printf("Data converted\n")
-
-	//	if err = SendToFtp(domain, zipPath, ftp); err != nil {
-	//		return
-	//	}
-
 	return
 }
 
+// ZipPath returns apth to archive file
 func ZipPath(sourceDir, domain string) string {
 	zipFileName := fmt.Sprintf("%s_%s.zip", domain, time.Now().Format(zipNameDateFormat))
 	return filepath.Join(sourceDir, zipFileName)
 }
 
+//DirPath path to folder with gratka
 func DirPath(baseDir string) string {
 	return filepath.Join(baseDir, "gratka")
 }
 
+//Zip compress folder
 func Zip(sourceFolder, gratkaFolder, domain string) (zipPath string, err error) {
 	zipPath = ZipPath(sourceFolder, domain)
 	log.Printf("Zip start. Directory '%s' in to '%s'\n", gratkaFolder, zipPath)
@@ -132,10 +136,10 @@ func makeDirs(baseFolder string) (path string, err error) {
 	return
 }
 
-func addPictures(rec *Record, offer mxml.XmlOffer, imgFolder, gratkaFolder string) (err error) {
-	pictures := &Pictures{mxml.NewBaseElem("zdjecia", []mxml.ElemWriter{})}
+func addPictures(rec *record, offer mxml.XmlOffer, imgFolder, gratkaFolder string) (err error) {
+	picts := &pictures{mxml.NewBaseElem("zdjecia", []mxml.ElemWriter{})}
 	if imgLen := offer.Pictures.Len(); imgLen == 0 {
-		rec.Add(pictures)
+		rec.Add(picts)
 		pictChan <- err
 		return
 	}
@@ -150,27 +154,29 @@ func addPictures(rec *Record, offer mxml.XmlOffer, imgFolder, gratkaFolder strin
 		if err = copyFile(srcPath, dstPath); err != nil {
 			break
 		}
-		pictures.Add(NewXmlElem(fmt.Sprintf("z%d", pictureOrder), "true"))
+		picts.Add(newXMLElem(fmt.Sprintf("z%d", pictureOrder), "true"))
 	}
-	rec.Add(pictures)
+	// mutex.Lock()
+	rec.Add(picts)
+	// mutex.Unlock()
 	pictChan <- err
 	return
 }
 
-func convertXml(header *mxml.XmlHeader, offlineCode, imagesDirPath, outFilePath, gratkaFolder string) (err error) {
+func convertXML(header *mxml.XmlHeader, offlineCode, imagesDirPath, outFilePath, gratkaFolder string) (err error) {
 	var (
-		rec    *Record
+		rec    *record
 		file   *os.File
 		gratka *Gratka
 	)
 	dicts := NewDicts()
-	actions := NewActions(ExportType)
-	company := NewCompany(offlineCode)
-	gratka = NewGratka()
+	actions := newActions(ExportType)
+	company := newCompany(offlineCode)
+	gratka = newGratka()
 	gratka.Add(actions)
 	gratka.Add(company)
 	for _, offer := range header.Offers {
-		rec = NewRecord()
+		rec = newRecord()
 		if err = fillCommon(rec, offer, dicts); err != nil {
 			return
 		}
@@ -182,6 +188,7 @@ func convertXml(header *mxml.XmlHeader, offlineCode, imagesDirPath, outFilePath,
 		}
 		go addPictures(rec, offer, imagesDirPath, gratkaFolder)
 		gratka.Add(rec)
+
 	}
 	for range header.Offers {
 		if err = <-pictChan; err != nil {
@@ -197,35 +204,35 @@ func convertXml(header *mxml.XmlHeader, offlineCode, imagesDirPath, outFilePath,
 	return
 }
 
-func fillCommon(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
+func fillCommon(rec *record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
 	insertTime := time.Now()
 	expireTime := insertTime.Add(time.Duration(2 * 24 * time.Hour))
-	rec.Add(NewXmlElem("action", "replace"))
-	rec.Add(NewXmlElem("id_inspert", strconv.Itoa(int(offer.Id))))
-	rec.Add(NewXmlElem("numer_oferty", fmt.Sprintf("%sSW", offer.NumerOferty.Clean())))
+	rec.Add(newXMLElem("action", "replace"))
+	rec.Add(newXMLElem("id_inspert", strconv.Itoa(int(offer.Id))))
+	rec.Add(newXMLElem("numer_oferty", fmt.Sprintf("%sSW", offer.NumerOferty.Clean())))
 	//rec.Add(NewXmlElem("data_zalozenia", insertTime.Format(DateTimeFormat)))
-	rec.Add(NewXmlElem("data_usuniecia", expireTime.Format(DateFormat)))
-	rec.Add(NewXmlElem("id_rubryka", getSectionId(offer.Grupa.Clean(), "rubryka")))
-	rec.Add(NewXmlElem("id_podrubryka", getSectionId(offer.Podgrupa.Clean(), "podrubryka")))
+	rec.Add(newXMLElem("data_usuniecia", expireTime.Format(DateFormat)))
+	rec.Add(newXMLElem("id_rubryka", getSectionId(offer.Grupa.Clean(), "rubryka")))
+	rec.Add(newXMLElem("id_podrubryka", getSectionId(offer.Podgrupa.Clean(), "podrubryka")))
 	if reg, ok := dicts.Get("region").GetVal(offer.Wojewodztwo.Clean()); ok {
-		rec.Add(NewXmlElem("id_region", reg))
+		rec.Add(newXMLElem("id_region", reg))
 	} else {
 		log.Printf("Warning: code for region '%s' not found\n", offer.Wojewodztwo.Clean())
 	}
-	rec.Add(NewXmlElem("miejscowosc", offer.Miejscowosc.Clean()))
-	rec.Add(NewXmlElem("dzielnica", offer.Dzielnica.Clean()))
-	rec.Add(NewXmlElem("ulica", offer.Ulica.Clean()))
-	rec.Add(NewXmlElem("id_jednostka_pow", strconv.Itoa(1)))
+	rec.Add(newXMLElem("miejscowosc", offer.Miejscowosc.Clean()))
+	rec.Add(newXMLElem("dzielnica", offer.Dzielnica.Clean()))
+	rec.Add(newXMLElem("ulica", offer.Ulica.Clean()))
+	rec.Add(newXMLElem("id_jednostka_pow", strconv.Itoa(1)))
 	if cur, ok := dicts.Get("currency").GetVal(offer.Waluta); ok {
-		rec.Add(NewXmlElem("id_waluta", cur))
+		rec.Add(newXMLElem("id_waluta", cur))
 	}
-	rec.Add(NewXmlElem("opis", description(offer, dicts)))
-	rec.Add(NewXmlElem("kontakt_email", offer.KontaktEmail.Clean()))
-	rec.Add(NewXmlElem("kontakt_telefon", phones(offer)))
-	rec.Add(NewXmlElem("kontakt_osoba", offer.KontaktOsoba.Clean()))
-	rec.Add(NewXmlElem("kod_pocztowy", offer.KodPocztowy.Clean()))
+	rec.Add(newXMLElem("opis", description(offer, dicts)))
+	rec.Add(newXMLElem("kontakt_email", offer.KontaktEmail.Clean()))
+	rec.Add(newXMLElem("kontakt_telefon", phones(offer)))
+	rec.Add(newXMLElem("kontakt_osoba", offer.KontaktOsoba.Clean()))
+	rec.Add(newXMLElem("kod_pocztowy", offer.KodPocztowy.Clean()))
 	if exclusive := offer.Wylacznosc.Clean(); len(exclusive) > 0 {
-		rec.Add(NewXmlElem("na_wylacznosc", "T"))
+		rec.Add(newXMLElem("na_wylacznosc", "T"))
 	}
 	return
 }
@@ -270,70 +277,70 @@ func phones(o mxml.XmlOffer) string {
 	return out
 }
 
-func fillApartment(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
+func fillApartment(rec *record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
 	offerType := "mieszkanie"
-	rec.Add(NewXmlElem("id_pietro", getFloor(offer.Pietro)))
-	rec.Add(NewXmlElem("id_liczba_pieter", getNoOfFloors(offer.IloscPieter, offerType)))
-	rec.Add(NewXmlElem("powierzchnia", formatFloat(offer.Area("apartment"))))
-	rec.Add(NewXmlElem("id_liczba_pokoi", getNoOfRooms(offer.IloscPokoi, offerType)))
-	rec.Add(NewXmlElem("id_rok_budowy", offer.RokBudowy.Clean()))
+	rec.Add(newXMLElem("id_pietro", getFloor(offer.Pietro)))
+	rec.Add(newXMLElem("id_liczba_pieter", getNoOfFloors(offer.IloscPieter, offerType)))
+	rec.Add(newXMLElem("powierzchnia", formatFloat(offer.Area("apartment"))))
+	rec.Add(newXMLElem("id_liczba_pokoi", getNoOfRooms(offer.IloscPokoi, offerType)))
+	rec.Add(newXMLElem("id_rok_budowy", offer.RokBudowy.Clean()))
 	if bType, ok := dicts.Get("building").GetVal(offer.RodzajZabudowy.Clean()); ok {
-		rec.Add(NewXmlElem("id_typ_zabudowy_nowe", bType))
+		rec.Add(newXMLElem("id_typ_zabudowy_nowe", bType))
 	}
 	switch getSectionId(offer.Grupa.Clean(), "rubryka") {
 	case "1": //sprzedaz
-		rec.Add(NewXmlElem("cena_calkowita", formatPrice(offer.CenaGroszy)))
-		rec.Add(NewXmlElem("wysokosc_czynszu", formatPrice(offer.CenaDodatkowaCzynsz)))
+		rec.Add(newXMLElem("cena_calkowita", formatPrice(offer.CenaGroszy)))
+		rec.Add(newXMLElem("wysokosc_czynszu", formatPrice(offer.CenaDodatkowaCzynsz)))
 	case "5": //wynajem
-		rec.Add(NewXmlElem("cena", formatPrice(offer.CenaGroszy)))
-		rec.Add(NewXmlElem("cena_wynajmu", formatPrice(offer.CenaGroszy)))
-		rec.Add(NewXmlElem("cena_czynsz", formatPrice(offer.CenaGroszy)))
+		rec.Add(newXMLElem("cena", formatPrice(offer.CenaGroszy)))
+		rec.Add(newXMLElem("cena_wynajmu", formatPrice(offer.CenaGroszy)))
+		rec.Add(newXMLElem("cena_czynsz", formatPrice(offer.CenaGroszy)))
 	}
 	return
 }
 
-func fillHouse(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
+func fillHouse(rec *record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
 	offerType := "dom"
-	rec.Add(NewXmlElem("id_liczba_pieter", getNoOfFloors(offer.IloscPieter, offerType)))
-	rec.Add(NewXmlElem("id_liczba_pokoi", getNoOfRooms(offer.IloscPokoi, offerType)))
-	rec.Add(NewXmlElem("powierzchnia", formatFloat(offer.PowierzchniaCalkowita)))
-	rec.Add(NewXmlElem("id_rok_budowy", offer.RokBudowy.Clean()))
-	rec.Add(NewXmlElem("powierzchnia_dzialki", formatFloat(offer.PowierzchniaDzialki)))
+	rec.Add(newXMLElem("id_liczba_pieter", getNoOfFloors(offer.IloscPieter, offerType)))
+	rec.Add(newXMLElem("id_liczba_pokoi", getNoOfRooms(offer.IloscPokoi, offerType)))
+	rec.Add(newXMLElem("powierzchnia", formatFloat(offer.PowierzchniaCalkowita)))
+	rec.Add(newXMLElem("id_rok_budowy", offer.RokBudowy.Clean()))
+	rec.Add(newXMLElem("powierzchnia_dzialki", formatFloat(offer.PowierzchniaDzialki)))
 	if bType, ok := dicts.Get("buildingtype").GetVal(offer.TypKonstrukcji.Clean()); ok {
-		rec.Add(NewXmlElem("id_typ_budynku", bType))
+		rec.Add(newXMLElem("id_typ_budynku", bType))
 	}
-	rec.Add(NewXmlElem("dlugosc", formatFloat(offer.DlugoscDzialki)))
-	rec.Add(NewXmlElem("szerokosc", formatFloat(offer.DlugoscDzialki)))
-	rec.Add(NewXmlElem("cena", formatPrice(offer.CenaGroszy)))
+	rec.Add(newXMLElem("dlugosc", formatFloat(offer.DlugoscDzialki)))
+	rec.Add(newXMLElem("szerokosc", formatFloat(offer.DlugoscDzialki)))
+	rec.Add(newXMLElem("cena", formatPrice(offer.CenaGroszy)))
 	return
 }
 
-func fillParcele(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
+func fillParcele(rec *record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
 
 	if pType, ok := dicts.Get("parcele").GetVal(offer.RodzajDzialki.Clean()); ok {
-		rec.Add(NewXmlElem("id_rodzaj_dzialki", pType))
+		rec.Add(newXMLElem("id_rodzaj_dzialki", pType))
 	}
-	rec.Add(NewXmlElem("powierzchnia", formatFloat(offer.Area("parcele"))))
-	rec.Add(NewXmlElem("dlugosc", formatFloat(offer.DlugoscDzialki)))
-	rec.Add(NewXmlElem("szerokosc", formatFloat(offer.DlugoscDzialki)))
-	rec.Add(NewXmlElem("id_rok_budowy", offer.RokBudowy.Clean()))
-	rec.Add(NewXmlElem("cena", formatPrice(offer.CenaGroszy)))
+	rec.Add(newXMLElem("powierzchnia", formatFloat(offer.Area("parcele"))))
+	rec.Add(newXMLElem("dlugosc", formatFloat(offer.DlugoscDzialki)))
+	rec.Add(newXMLElem("szerokosc", formatFloat(offer.DlugoscDzialki)))
+	rec.Add(newXMLElem("id_rok_budowy", offer.RokBudowy.Clean()))
+	rec.Add(newXMLElem("cena", formatPrice(offer.CenaGroszy)))
 	return
 }
 
-func fillLocal(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
-	rec.Add(NewXmlElem("id_rok_budowy", offer.RokBudowy.Clean()))
-	rec.Add(NewXmlElem("powierzchnia_calkowita", formatFloat(offer.Area("local"))))
+func fillLocal(rec *record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
+	rec.Add(newXMLElem("id_rok_budowy", offer.RokBudowy.Clean()))
+	rec.Add(newXMLElem("powierzchnia_calkowita", formatFloat(offer.Area("local"))))
 	if loc, ok := dicts.Get("local").GetVal(offer.TypKonstrukcji.Clean()); ok {
-		rec.Add(NewXmlElem("id_typ_lokalu", loc))
+		rec.Add(newXMLElem("id_typ_lokalu", loc))
 	}
-	rec.Add(NewXmlElem("cena", formatPrice(offer.CenaGroszy)))
+	rec.Add(newXMLElem("cena", formatPrice(offer.CenaGroszy)))
 	return
 }
 
-func fillOffice(rec *Record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
-	rec.Add(NewXmlElem("id_rok_budowy", offer.RokBudowy.Clean()))
-	rec.Add(NewXmlElem("powierzchnia", formatFloat(offer.PowierzchniaCalkowita)))
-	rec.Add(NewXmlElem("cena", formatFloat(offer.CenaGroszy)))
+func fillOffice(rec *record, offer mxml.XmlOffer, dicts *Dicts) (err error) {
+	rec.Add(newXMLElem("id_rok_budowy", offer.RokBudowy.Clean()))
+	rec.Add(newXMLElem("powierzchnia", formatFloat(offer.PowierzchniaCalkowita)))
+	rec.Add(newXMLElem("cena", formatFloat(offer.CenaGroszy)))
 	return
 }

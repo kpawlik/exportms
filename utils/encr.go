@@ -12,8 +12,11 @@ import (
 )
 
 type jsonMap map[string]string
+
+//Credentials db access data
 type Credentials map[string]jsonMap
 
+//Encrypt encryptor
 func Encrypt(txt, pswd string) (out []byte, err error) {
 	var (
 		block    cipher.Block
@@ -35,6 +38,7 @@ func Encrypt(txt, pswd string) (out []byte, err error) {
 	return
 }
 
+// Decrypt function
 func Decrypt(data []byte, pswd string) (out string, err error) {
 	var (
 		block    cipher.Block
@@ -74,6 +78,7 @@ func changePswd(oldpswd, newpswd string, data []byte) (out []byte, err error) {
 	return Encrypt(strData, newpswd)
 }
 
+// GetCredentials returns Credentials
 func GetCredentials(encFileName string) (obj Credentials, err error) {
 	var (
 		passwd  string
@@ -81,10 +86,10 @@ func GetCredentials(encFileName string) (obj Credentials, err error) {
 		decData string
 	)
 	if _, err = os.Stat(encFileName); err != nil {
-		err = Errorf("Brak pliku z configuracja %s, %v\n", encFileName, err)
+		err = Errorf("Missing '%s' file, %v\n", encFileName, err)
 		return
 	}
-	fmt.Print("Podaj hasło:")
+	fmt.Print("Enter password: ")
 	fmt.Scanln(&passwd)
 	if encData, err = ioutil.ReadFile(encFileName); err != nil {
 		return

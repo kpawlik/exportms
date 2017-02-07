@@ -160,11 +160,13 @@ func currency() dict {
 }
 
 type Dicts struct {
+	// mx    *sync.Mutex
 	cache map[string]dict
 }
 
 func NewDicts() *Dicts {
-	return &Dicts{make(map[string]dict)}
+	return &Dicts{
+		make(map[string]dict)}
 }
 
 func (d *Dicts) Get(name string) dict {

@@ -20,8 +20,8 @@ func TestGetSectionID(t *testing.T) {
 	}
 	for k, v := range testData {
 
-		if sId := getSectionId(k); sId != v {
-			t.Errorf("Wrong Section Id. Is %d, should be %d\n", sId, v)
+		if sID := getSectionId(k, ExportType); sID != v {
+			t.Errorf("Wrong Section Id. Is %d, should be %d\n", sID, v)
 		}
 	}
 }
