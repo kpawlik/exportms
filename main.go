@@ -80,7 +80,7 @@ func init() {
 	flag.IntVar(&noOfWorkers, "n", 1, "")
 	flag.BoolVar(&sendOnly, "s", false, "")
 	flag.BoolVar(&testMode, "tm", false, "")
-	flag.StringVar(&exportTypes, "e", "", "")
+	flag.StringVar(&exportTypes, "e", "", "gratka, otodom")
 	flag.Parse()
 	workDir, err = filepath.Abs(strings.ToLower(workDir))
 	utils.LogErr(err, "Dest folder path")

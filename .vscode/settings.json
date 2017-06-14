@@ -1,3 +1,6 @@
 {
-    "cSpell.enabled": true
+    "cSpell.enabled": true,
+    "editor.formatOnPaste": true,
+    "editor.minimap.enabled": true,
+    "editor.snippetSuggestions": "top"
 }

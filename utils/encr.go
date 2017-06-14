@@ -98,7 +98,7 @@ func GetCredentials(encFileName string) (obj Credentials, err error) {
 		return
 	}
 	if err = json.Unmarshal([]byte(decData), &obj); err != nil {
-		err = Errorf("Niepoprawne haslo (%v)\n", err)
+		err = Errorf("Wrong password (%v)\n", err)
 		return
 	}
 	return
