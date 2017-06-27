@@ -139,13 +139,13 @@ func validPaths(conf *config) (err error) {
 }
 
 // setCredentials sets login/pass/ftp etc data for db acceess and exprot to ftp
-func setCredentials(exportType string) {
+func setCredentials(exportType string) error {
 	var (
 		err error
 	)
 	if credentials == nil {
 		if credentials, err = utils.GetCredentials(CreadentalsFile); err != nil {
-			panic(err)
+			return err
 		}
 	}
 	if exportType == "db" {
@@ -154,7 +154,7 @@ func setCredentials(exportType string) {
 		DbPass = dbData["pass"]
 		DbHost = dbData["host"]
 		DbName = dbData["name"]
-		return
+		return nil
 	}
 	data := credentials[exportType]
 	Domain = data["domain"]
@@ -162,6 +162,7 @@ func setCredentials(exportType string) {
 	FTPHost = data["ftpHost"]
 	FTPLogin = data["ftpLogin"]
 	FTPPass = data["ftpPass"]
+	return nil
 }
 
 func exportGratka(name string, conf *config) (err error) {
@@ -170,7 +171,10 @@ func exportGratka(name string, conf *config) (err error) {
 		zipPath   string
 		ftp       *utils.FTP
 	)
-	setCredentials(name)
+	if err = setCredentials(name); err != nil {
+		log.Printf("Incorrect password for %s\n", name)
+		return
+	}
 	zipPath = gratka.ZipPath(conf.workDir, Domain)
 	if !conf.sendOnly {
 		startTime := time.Now()
@@ -205,7 +209,10 @@ func main() {
 			}
 		}
 	}
-	setCredentials("db")
+	if err = setCredentials("db"); err != nil {
+		log.Printf("Incorrect password for DB\n")
+		return
+	}
 	startTime := time.Now()
 	// validate paths, remove / create dirctory
 	if err = validPaths(settings); err != nil {

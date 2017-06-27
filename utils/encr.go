@@ -9,6 +9,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"syscall"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type jsonMap map[string]string
@@ -90,7 +93,9 @@ func GetCredentials(encFileName string) (obj Credentials, err error) {
 		return
 	}
 	fmt.Print("Enter password: ")
-	fmt.Scanln(&passwd)
+	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	fmt.Println()
+	passwd = string(bytePassword)
 	if encData, err = ioutil.ReadFile(encFileName); err != nil {
 		return
 	}
@@ -101,5 +106,6 @@ func GetCredentials(encFileName string) (obj Credentials, err error) {
 		err = Errorf("Wrong password (%v)\n", err)
 		return
 	}
+
 	return
 }
