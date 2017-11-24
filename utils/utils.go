@@ -29,10 +29,17 @@ func LogErr(err error, msg string) {
 	}
 }
 
+// LogFatalf log fortmated fatal error
+func LogFatalf(err error, format string, args ...interface{}) {
+	if err != nil {
+		log.Fatalf("%s, %v", fmt.Sprintf(format, args...), err)
+	}
+}
+
 // LogErrf log fortmated fatal error
 func LogErrf(err error, format string, args ...interface{}) {
 	if err != nil {
-		log.Fatalf("%s, %v", fmt.Sprintf(format, args...), err)
+		log.Printf("%s, %v", fmt.Sprintf(format, args...), err)
 	}
 }
 

@@ -214,7 +214,7 @@ func main() {
 		return
 	}
 	startTime := time.Now()
-	// validate paths, remove / create dirctory
+	// validate paths, remove / create directory
 	if err = validPaths(settings); err != nil {
 		utils.LogErrf(err, "Settings paths")
 	}
@@ -229,7 +229,7 @@ func main() {
 
 	for _, name := range types {
 		if err = exports[name](name, settings); err != nil {
-			utils.LogErrf(err, "Error durring process %s", name)
+			utils.LogErrf(err, "Error durning process %s", name)
 		}
 	}
 	log.Printf("All done in %v\n", time.Now().Sub(startTime))
