@@ -11,6 +11,7 @@ import (
 	"github.com/kpawlik/exportms/db"
 	"github.com/kpawlik/exportms/utils"
 	"github.com/kpawlik/exportms/xml"
+	"gopkg.in/cheggaaa/pb.v1"
 )
 
 // fillOffer fill offer record from database
@@ -166,20 +167,27 @@ func dumpAsXML(conf *config) (count int, err error) {
 			inOffersChan <- offer
 		}
 	}()
-	step := 25
+	// step := 25
 	total := len(offers.Ids())
-	counter := 0
+	// counter := 0
 	// collect offers from workers
 	xmlOffers := xml.NewOffers()
+	bar := pb.New(total)
+	bar.SetMaxWidth(80)
+	bar.SetWidth(80)
+	bar.ShowCounters = true
+	bar.Start()
 	for range offers.Ids() {
 		xmlOffer := <-outOffersChan
 		xmlOffers.Add(xmlOffer)
-		counter++
-		if (counter % step) == 0 {
-			log.Printf("Completed orders: %d/%d\n", counter, total)
-		}
+		bar.Increment()
+		// counter++
+		// if (counter % step) == 0 {
+		// 	log.Printf("Completed orders: %d/%d\n", counter, total)
+		// }
 	}
-	log.Printf("Completed orders: %d/%d\n", counter, total)
+	bar.FinishPrint("Completed orders")
+	//log.Printf("Completed orders: %d/%d\n", counter, total)
 	log.Printf("Waiting for download all images \n")
 	// wait for all images finish download
 	wg.Wait()

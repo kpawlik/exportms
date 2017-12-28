@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/dutchcoders/goftp"
+	"github.com/mitchellh/ioprogress"
 )
 
 // FTP sype and methods
@@ -35,7 +36,11 @@ func (f *FTP) SendFile(remoteDir, remoteFile, localFile string) (err error) {
 	if file, err = os.Open(localFile); err != nil {
 		return
 	}
+	info, _ := os.Stat(localFile)
 	defer file.Close()
+	reader := &ioprogress.Reader{Reader: file,
+		Size:     info.Size(),
+		DrawFunc: ioprogress.DrawTerminalf(os.Stdout, ioprogress.DrawTextFormatBytes)}
 	if f.testMode {
 		return
 	}
@@ -45,7 +50,7 @@ func (f *FTP) SendFile(remoteDir, remoteFile, localFile string) (err error) {
 	if err = ftp.Cwd(remoteDir); err != nil {
 		return
 	}
-	ftp.Stor(remoteFile, file)
+	ftp.Stor(remoteFile, reader)
 
 	return
 }
